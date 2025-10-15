@@ -19,6 +19,23 @@ flutter pub run build_runner build
 flutter run
 ```
 
+**Build the app for Android testing using apk**
+```bash
+flutter build apk --debug
+```
+**Locate and Install the Debug APK on Your Phone**
+
+1. **Locate the APK:**
+    After building the debug APK, you can find it in the following directory:
+    ```
+    photo_lib_app/build/app/outputs/flutter-apk/app-debug.apk
+    ```
+
+2. **Install the APK on Your Phone:**
+    - Transfer the `app-debug.apk` file to your phone via USB, email, or any file-sharing method.
+    - On your phone, navigate to the file location and tap on the APK file to install it.
+    - If prompted, enable the option to install apps from unknown sources.
+
 ### App Features
 
 - Implement light and dark themes with SafeArea. Lock rotation to portrait mode for mobile devices, as horizontal orientation is not ideal for enlarging photos and viewing details. Allow rotation for tablets.

@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum AppThemeMode {
   light,
   dark,
-  custom,
 }
 
 /// Theme Provider for managing app theme state
@@ -28,9 +27,6 @@ class ThemeProvider extends ChangeNotifier {
         return ThemeMode.light;
       case AppThemeMode.dark:
         return ThemeMode.dark;
-      case AppThemeMode.custom:
-        return ThemeMode
-            .light; // Custom uses light theme base with custom colors
     }
   }
 
@@ -39,9 +35,6 @@ class ThemeProvider extends ChangeNotifier {
 
   /// Check if current theme is dark
   bool get isDark => _appThemeMode == AppThemeMode.dark;
-
-  /// Check if current theme is custom
-  bool get isCustom => _appThemeMode == AppThemeMode.custom;
 
   /// Load theme mode from SharedPreferences
   Future<void> _loadThemeMode() async {
@@ -73,16 +66,13 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Toggle to next theme (Light -> Dark -> Custom -> Light)
+  /// Toggle between light and dark theme
   Future<void> toggleTheme() async {
     switch (_appThemeMode) {
       case AppThemeMode.light:
         await setThemeMode(AppThemeMode.dark);
         break;
       case AppThemeMode.dark:
-        await setThemeMode(AppThemeMode.custom);
-        break;
-      case AppThemeMode.custom:
         await setThemeMode(AppThemeMode.light);
         break;
     }
@@ -95,8 +85,6 @@ class ThemeProvider extends ChangeNotifier {
         return 'Light';
       case AppThemeMode.dark:
         return 'Dark';
-      case AppThemeMode.custom:
-        return 'Custom';
     }
   }
 
@@ -107,8 +95,6 @@ class ThemeProvider extends ChangeNotifier {
         return Icons.light_mode;
       case AppThemeMode.dark:
         return Icons.dark_mode;
-      case AppThemeMode.custom:
-        return Icons.palette;
     }
   }
 }

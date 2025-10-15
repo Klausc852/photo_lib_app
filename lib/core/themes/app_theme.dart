@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 /// Application theme configurations
-/// Provides light, dark, and custom themes with consistent styling
+/// Provides light and dark themes with consistent styling
 class AppTheme {
   // Private constructor to prevent instantiation
   AppTheme._();
@@ -127,68 +127,6 @@ class AppTheme {
       // Icon theme
       iconTheme: IconThemeData(
         color: AppColors.textPrimaryDark,
-        size: 24,
-      ),
-    );
-  }
-
-  /// Custom Theme Configuration (Blue & Green accent)
-  static ThemeData get customTheme {
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.light,
-      primaryColor: AppColors.primaryCustom,
-      scaffoldBackgroundColor: AppColors.backgroundCustom,
-      colorScheme: ColorScheme.light(
-        primary: AppColors.primaryCustom,
-        secondary: AppColors.secondaryCustom,
-        surface: Colors.white,
-        background: AppColors.backgroundCustom,
-        error: AppColors.error,
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-        onSurface: AppColors.textPrimaryLight,
-        onBackground: AppColors.textPrimaryLight,
-        onError: Colors.white,
-      ),
-
-      // Text theme using Google Fonts (Roboto)
-      textTheme: _buildTextTheme(AppColors.textPrimaryLight),
-
-      // AppBar theme
-      appBarTheme: AppBarTheme(
-        elevation: 0,
-        centerTitle: true,
-        backgroundColor: AppColors.backgroundCustom,
-        foregroundColor: AppColors.textPrimaryLight,
-        titleTextStyle: GoogleFonts.roboto(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimaryLight,
-        ),
-      ),
-
-      // Card theme
-      cardTheme: CardThemeData(
-        elevation: 2,
-        shadowColor: Colors.black26,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        color: Colors.white,
-      ),
-
-      // Button themes
-      elevatedButtonTheme: _buildElevatedButtonTheme(AppColors.primaryCustom),
-      outlinedButtonTheme: _buildOutlinedButtonTheme(AppColors.primaryCustom),
-      textButtonTheme: _buildTextButtonTheme(AppColors.primaryCustom),
-
-      // Input decoration theme
-      inputDecorationTheme: _buildInputDecorationTheme(AppColors.primaryCustom),
-
-      // Icon theme
-      iconTheme: IconThemeData(
-        color: AppColors.textPrimaryLight,
         size: 24,
       ),
     );

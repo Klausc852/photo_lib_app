@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 import 'core/providers/theme_provider.dart';
 import 'core/services/cache_service.dart';
-import 'core/services/api_service.dart';
 import 'core/services/environment_service.dart';
 import 'screens/splash/splash_screen.dart';
 import 'core/themes/app_theme.dart';
@@ -53,7 +52,7 @@ class MyApp extends StatelessWidget {
             splitScreenMode: true,
             builder: (context, child) {
               return MaterialApp(
-                title: 'Flutter Base App',
+                title: 'Flutter Photo App',
                 debugShowCheckedModeBanner: false,
 
                 // Theme configuration
@@ -64,14 +63,35 @@ class MyApp extends StatelessWidget {
                 // Initial route
                 home: const SplashScreen(),
 
-                // Global builder for handling safe area
+                // Global builder for handling safe area and orientation
                 builder: (context, widget) {
+                  // Set orientation based on device type
+                  final mediaQuery = MediaQuery.of(context);
+                  final isTablet = mediaQuery.size.shortestSide >= 600;
+
+                  // Lock orientation for mobile devices only
+                  if (!isTablet) {
+                    SystemChrome.setPreferredOrientations([
+                      DeviceOrientation.portraitUp,
+                    ]);
+                  } else {
+                    // Allow all orientations for tablets
+                    SystemChrome.setPreferredOrientations([
+                      DeviceOrientation.portraitUp,
+                      DeviceOrientation.landscapeLeft,
+                      DeviceOrientation.landscapeRight,
+                    ]);
+                  }
+
                   return MediaQuery(
                     // Ensure text scale factor doesn't exceed 1.5
                     data: MediaQuery.of(context).copyWith(
-                      textScaleFactor: MediaQuery.of(context)
-                          .textScaleFactor
-                          .clamp(0.8, 1.5),
+                      textScaler: TextScaler.linear(
+                        MediaQuery.of(context)
+                            .textScaler
+                            .scale(1.0)
+                            .clamp(0.8, 1.5),
+                      ),
                     ),
                     child: widget!,
                   );

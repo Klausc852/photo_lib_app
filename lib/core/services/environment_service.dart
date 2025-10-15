@@ -15,11 +15,6 @@ class EnvironmentService {
   static bool get debugMode =>
       dotenv.env['DEBUG_MODE']?.toLowerCase() == 'true';
 
-  // Third-party Services
-  static String get googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
-  static String get firebaseProjectId =>
-      dotenv.env['FIREBASE_PROJECT_ID'] ?? '';
-
   // Database
   static String get databaseUrl => dotenv.env['DATABASE_URL'] ?? '';
 

@@ -1,61 +1,73 @@
-/// Photo model for JSONPlaceholder API
+/// Photo model for photo library API
 class PhotoModel {
-  final int albumId;
-  final int id;
-  final String title;
+  final String id;
   final String url;
-  final String thumbnailUrl;
+  final String description;
+  final String location;
+  final String createdBy;
+  final DateTime createdAt;
+  final DateTime takenAt;
 
   PhotoModel({
-    required this.albumId,
     required this.id,
-    required this.title,
     required this.url,
-    required this.thumbnailUrl,
+    required this.description,
+    required this.location,
+    required this.createdBy,
+    required this.createdAt,
+    required this.takenAt,
   });
 
   /// Create PhotoModel from JSON
-  factory PhotoModel.fromJson(Map<String, dynamic> json) {
+  factory PhotoModel.fromJson(Map<dynamic, dynamic> json) {
     return PhotoModel(
-      albumId: json['albumId'] as int,
-      id: json['id'] as int,
-      title: json['title'] as String,
+      id: json['id'] as String,
       url: json['url'] as String,
-      thumbnailUrl: json['thumbnailUrl'] as String,
+      description: json['description'] as String,
+      location: json['location'] as String,
+      createdBy: json['createdBy'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      takenAt: DateTime.parse(json['takenAt'] as String),
     );
   }
 
   /// Convert PhotoModel to JSON
   Map<String, dynamic> toJson() {
     return {
-      'albumId': albumId,
       'id': id,
-      'title': title,
       'url': url,
-      'thumbnailUrl': thumbnailUrl,
+      'description': description,
+      'location': location,
+      'createdBy': createdBy,
+      'createdAt': createdAt.toIso8601String(),
+      'takenAt': takenAt.toIso8601String(),
     };
   }
 
   /// Create a copy with modified fields
   PhotoModel copyWith({
-    int? albumId,
-    int? id,
-    String? title,
+    String? id,
     String? url,
-    String? thumbnailUrl,
+    String? description,
+    String? location,
+    String? createdBy,
+    DateTime? createdAt,
+    DateTime? takenAt,
   }) {
     return PhotoModel(
-      albumId: albumId ?? this.albumId,
       id: id ?? this.id,
-      title: title ?? this.title,
       url: url ?? this.url,
-      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      description: description ?? this.description,
+      location: location ?? this.location,
+      createdBy: createdBy ?? this.createdBy,
+      createdAt: createdAt ?? this.createdAt,
+      takenAt: takenAt ?? this.takenAt,
     );
   }
 
   @override
   String toString() {
-    return 'PhotoModel(id: $id, title: $title, albumId: $albumId)';
+    return 'PhotoModel(id: $id, description: $description, location: $location, createdBy: $createdBy)';
   }
 
   @override

@@ -14,7 +14,8 @@ class ApiService {
   }
 
   late Dio _dio;
-  final String baseUrl = 'https://jsonplaceholder.typicode.com';
+  final String baseUrl = Platform.environment['API_BASE_URL'] ??
+      'https://qchkdevhiring.blob.core.windows.net/mobile/api/';
 
   // Retry configuration
   static const int maxRetries = 3;

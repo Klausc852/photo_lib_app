@@ -91,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen>
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Theme.of(context).primaryColor.withOpacity(0.1),
+                  Theme.of(context).primaryColor,
                   Theme.of(context).scaffoldBackgroundColor,
                 ],
               ),
@@ -99,42 +99,16 @@ class _SplashScreenState extends State<SplashScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Animated Logo
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: _buildLogo(context),
-                  ),
-                ),
-
                 SizedBox(height: 24.h),
 
                 // App Name
                 FadeTransition(
                   opacity: _fadeAnimation,
                   child: Text(
-                    'Flutter Base',
+                    'Photo App',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Theme.of(context).primaryColor,
-                        ),
-                  ),
-                ),
-
-                SizedBox(height: 8.h),
-
-                // App Tagline
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Text(
-                    'Your App Template',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.color
-                              ?.withOpacity(0.6),
                         ),
                   ),
                 ),
@@ -157,62 +131,11 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
 
                 SizedBox(height: 16.h),
-
-                // Tap to continue text
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Text(
-                    'Tap to continue',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.color
-                              ?.withOpacity(0.4),
-                        ),
-                  ),
-                ),
               ],
             ),
           ),
         ),
       ),
     );
-  }
-
-  /// Build logo widget
-  /// Replace with your actual logo image
-  Widget _buildLogo(BuildContext context) {
-    return Container(
-      width: 120.w,
-      height: 120.w,
-      decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).primaryColor.withOpacity(0.3),
-            blurRadius: 20,
-            spreadRadius: 5,
-          ),
-        ],
-      ),
-      child: Icon(
-        Icons.flutter_dash,
-        size: 80.sp,
-        color: Colors.white,
-      ),
-    );
-
-    // To use an actual image from assets, replace the above with:
-    // return ClipRRect(
-    //   borderRadius: BorderRadius.circular(30),
-    //   child: Image.asset(
-    //     'assets/logo/app_logo.png',
-    //     width: 120.w,
-    //     height: 120.w,
-    //     fit: BoxFit.contain,
-    //   ),
-    // );
   }
 }

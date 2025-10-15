@@ -6,7 +6,9 @@ import '../../core/providers/theme_provider.dart';
 import '../../core/models/photo_model.dart';
 import '../../core/repositories/photo_repository.dart';
 import '../../widgets/loading_indicator.dart';
-import '../../widgets/custom_image_widget.dart';
+import '../../widgets/photo_grid_widget.dart';
+import '../../widgets/empty_state_widget.dart';
+import '../../widgets/photo_detail_dialog.dart';
 import '../settings/settings_screen.dart';
 
 /// Main Screen - Primary screen with photo grid
@@ -20,10 +22,25 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   final PhotoRepository _photoRepository = PhotoRepository();
-  List<PhotoModel> _photos = [];
+  final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  List<PhotoModel> _allPhotos = []; // All photos from API
+  List<PhotoModel> _filteredPhotos = []; // Filtered photos based on search
+  List<PhotoModel> _displayedPhotos = []; // Currently displayed photos
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   String? _error;
   bool _isFromCache = false;
+  int _currentPage = 1;
+  bool _toTop = false;
+  static const int _photosPerPage = 20;
+  bool _hasMorePhotos = true;
+
+  // Filter and sort state
+  String _searchQuery = '';
+  bool _sortByTimeDescending =
+      true; // true = newest first, false = oldest first
 
   @override
   void initState() {
@@ -31,31 +48,50 @@ class _MainScreenState extends State<MainScreen> {
     _loadPhotos();
   }
 
-  /// Load photos from API
-  Future<void> _loadPhotos() async {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Load photos from API (fetch all photos once)
+  Future<void> _loadPhotos({bool refresh = false}) async {
     if (_isLoading) return;
 
     setState(() {
       _isLoading = true;
       _error = null;
+      if (refresh) {
+        _allPhotos.clear();
+        _displayedPhotos.clear();
+        _currentPage = 1;
+        _toTop = false;
+        _hasMorePhotos = true;
+      }
     });
 
     try {
-      final response = await _photoRepository.fetchPhotos(limit: 30);
+      // Only fetch from API if we don't have photos or refreshing
+      if (_allPhotos.isEmpty || refresh) {
+        final response = await _photoRepository.fetchPhotos();
 
-      if (mounted) {
-        if (response.success && response.data != null) {
-          setState(() {
-            _photos = response.data!;
+        if (mounted) {
+          if (response.success && response.data != null) {
+            _allPhotos = response.data!;
             _isFromCache = response.fromCache;
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _error = response.error ?? 'Failed to load photos';
-            _isLoading = false;
-          });
+            _applyFiltersAndSort();
+          } else {
+            setState(() {
+              _error = response.error ?? 'Failed to load photos';
+              _isLoading = false;
+            });
+            return;
+          }
         }
+      } else {
+        // Just update the displayed photos from cached data
+        _applyFiltersAndSort();
       }
     } catch (e) {
       if (mounted) {
@@ -65,6 +101,120 @@ class _MainScreenState extends State<MainScreen> {
         });
       }
     }
+  }
+
+  /// Apply filters and sorting, then load current page
+  void _applyFiltersAndSort() {
+    // Apply search filter
+    if (_searchQuery.isEmpty) {
+      _filteredPhotos = List.from(_allPhotos);
+    } else {
+      _filteredPhotos = _allPhotos.where((photo) {
+        final query = _searchQuery.toLowerCase();
+        return photo.description.toLowerCase().contains(query) ||
+            photo.location.toLowerCase().contains(query) ||
+            photo.createdBy.toLowerCase().contains(query);
+      }).toList();
+    }
+    if (_filteredPhotos.length <= 0) {
+    } else {
+      // Apply sorting
+      _filteredPhotos.sort((a, b) {
+        if (_sortByTimeDescending) {
+          return b.createdAt.compareTo(a.createdAt); // Newest first
+        } else {
+          return a.createdAt.compareTo(b.createdAt); // Oldest first
+        }
+      });
+    }
+
+    // Reset pagination and load first page
+    _currentPage = 1;
+    _loadCurrentPage();
+  }
+
+  /// Filter photos by search query
+  void _filterPhotos(String query) {
+    setState(() {
+      _searchQuery = query;
+    });
+    _applyFiltersAndSort();
+  }
+
+  /// Toggle sort order
+  void _toggleSortOrder() {
+    setState(() {
+      _sortByTimeDescending = !_sortByTimeDescending;
+    });
+    _applyFiltersAndSort();
+  }
+
+  /// Load current page from filtered photos
+  void _loadCurrentPage() {
+    final startIndex = (_currentPage - 1) * _photosPerPage;
+    final endIndex = startIndex + _photosPerPage;
+
+    setState(() {
+      if (startIndex < _filteredPhotos.length) {
+        final pagePhotos =
+            _filteredPhotos.skip(startIndex).take(_photosPerPage).toList();
+
+        if (_currentPage == 1) {
+          _displayedPhotos = pagePhotos;
+        } else {
+          _displayedPhotos.addAll(pagePhotos);
+        }
+
+        _hasMorePhotos = endIndex < _filteredPhotos.length;
+      } else {
+        _hasMorePhotos = false;
+      }
+      _isLoading = false;
+    });
+  }
+
+  /// Load more photos (next page from cached data)
+  Future<void> _loadMorePhotos() async {
+    if (_isLoadingMore || !_hasMorePhotos) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    _currentPage++;
+    _toTop = true;
+
+    // Add a small delay to simulate loading for better UX
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    final startIndex = (_currentPage - 1) * _photosPerPage;
+    final endIndex = startIndex + _photosPerPage;
+
+    if (mounted) {
+      setState(() {
+        if (startIndex < _filteredPhotos.length) {
+          final pagePhotos =
+              _filteredPhotos.skip(startIndex).take(_photosPerPage).toList();
+          _displayedPhotos.addAll(pagePhotos);
+          _hasMorePhotos = endIndex < _filteredPhotos.length;
+        } else {
+          _hasMorePhotos = false;
+        }
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  /// Scroll to top of the list
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+    setState(() {
+      _toTop = false;
+    });
   }
 
   @override
@@ -106,16 +256,23 @@ class _MainScreenState extends State<MainScreen> {
       // Body
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: _loadPhotos,
-          child: _buildBody(),
+          onRefresh: () => _loadPhotos(refresh: true),
+          child: Column(
+            children: [
+              // Search bar
+              _buildSearchBar(),
+              // Main content
+              Expanded(child: _buildBody()),
+            ],
+          ),
         ),
       ),
 
       // Floating Action Button
       floatingActionButton: FloatingActionButton(
-        onPressed: _loadPhotos,
-        tooltip: 'Refresh',
-        child: const Icon(Icons.refresh),
+        onPressed: _toTop ? _scrollToTop : () => _loadPhotos(refresh: true),
+        tooltip: _toTop ? 'Scroll to Top' : 'Refresh',
+        child: Icon(_toTop ? Icons.keyboard_arrow_up : Icons.refresh),
       ),
     );
   }
@@ -123,106 +280,66 @@ class _MainScreenState extends State<MainScreen> {
   /// Build body based on state
   Widget _buildBody() {
     // Loading state
-    if (_isLoading && _photos.isEmpty) {
+    if (_isLoading && _displayedPhotos.isEmpty) {
       return const LoadingIndicator(
         message: 'Loading photos...',
       );
     }
 
     // Error state
-    if (_error != null && _photos.isEmpty) {
+    if (_error != null && _displayedPhotos.isEmpty) {
       return _buildErrorWidget();
     }
 
     // Success state with data
-    if (_photos.isNotEmpty) {
+    if (_displayedPhotos.isNotEmpty && _filteredPhotos.isNotEmpty) {
       return Column(
         children: [
           // Cache indicator
           if (_isFromCache) _buildCacheIndicator(),
 
+          // Total photos indicator
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 16.w),
+            child: Text(
+              'Total photos: ${_filteredPhotos.length} (Showing: ${_displayedPhotos.length})',
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ),
           // Photo grid
           Expanded(
-            child: _buildPhotoGrid(),
+            child: PhotoGridWidget(
+              photos: _displayedPhotos,
+              scrollController: _scrollController,
+              hasMorePhotos: _hasMorePhotos,
+              isLoadingMore: _isLoadingMore,
+              onLoadMore: _loadMorePhotos,
+              onPhotoTap: _showPhotoDetail,
+            ),
           ),
         ],
       );
     }
 
-    // Empty state
-    return _buildEmptyWidget();
-  }
+    // No results from search filter
+    if (_searchQuery.isNotEmpty &&
+        _filteredPhotos.isEmpty &&
+        _allPhotos.isNotEmpty) {
+      return EmptyStateWidget(
+        title: 'No photos found',
+        subtitle: 'No photos match your search for "$_searchQuery"',
+        icon: Icons.search_off,
+        onRetry: () {
+          _searchController.clear();
+          _filterPhotos('');
+        },
+        retryButtonText: 'Clear Search',
+      );
+    }
 
-  /// Build photo grid
-  Widget _buildPhotoGrid() {
-    return GridView.builder(
-      padding: EdgeInsets.all(16.w),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16.w,
-        mainAxisSpacing: 16.h,
-        childAspectRatio: 0.8,
-      ),
-      itemCount: _photos.length,
-      itemBuilder: (context, index) {
-        return _buildPhotoCard(_photos[index]);
-      },
-    );
-  }
-
-  /// Build photo card
-  Widget _buildPhotoCard(PhotoModel photo) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: () => _showPhotoDetail(photo),
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Photo image
-            Expanded(
-              child: CustomImageWidget(
-                imageUrl: photo.thumbnailUrl,
-                width: double.infinity,
-                borderRadius: 12,
-                fit: BoxFit.cover,
-              ),
-            ),
-
-            // Photo info
-            Padding(
-              padding: EdgeInsets.all(12.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    photo.title,
-                    style: Theme.of(context).textTheme.titleSmall,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    'Album ${photo.albumId} • ID ${photo.id}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.color
-                              ?.withOpacity(0.6),
-                        ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    // Empty state (no photos at all)
+    return const EmptyStateWidget();
   }
 
   /// Build cache indicator
@@ -230,7 +347,7 @@ class _MainScreenState extends State<MainScreen> {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 16.w),
-      color: Colors.amber.withOpacity(0.2),
+      color: Colors.amber,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -275,7 +392,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
             SizedBox(height: 24.h),
             ElevatedButton.icon(
-              onPressed: _loadPhotos,
+              onPressed: () => _loadPhotos(refresh: true),
               icon: const Icon(Icons.refresh),
               label: const Text('Try Again'),
             ),
@@ -285,82 +402,58 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  /// Build empty widget
-  Widget _buildEmptyWidget() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.photo_library_outlined,
-            size: 64.sp,
-            color: Colors.grey,
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            'No photos available',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Show photo detail dialog
   void _showPhotoDetail(PhotoModel photo) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Full size image
-            ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
-              child: CustomImageWidget(
-                imageUrl: photo.url,
-                width: double.infinity,
-                height: 300.h,
-                fit: BoxFit.cover,
-              ),
-            ),
+    PhotoDetailDialog.show(context, photo);
+  }
 
-            // Photo details
-            Padding(
-              padding: EdgeInsets.all(16.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    photo.title,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    'Album ID: ${photo.albumId}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  Text(
-                    'Photo ID: ${photo.id}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  SizedBox(height: 16.h),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Close'),
-                    ),
-                  ),
-                ],
+  /// Build search bar widget
+  Widget _buildSearchBar() {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by description, location, or creator...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _filterPhotos('');
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).cardColor,
+              ),
+              onChanged: _filterPhotos,
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Theme.of(context).dividerColor,
               ),
             ),
-          ],
-        ),
+            child: IconButton(
+              icon:
+                  Icon(_sortByTimeDescending ? Icons.schedule : Icons.history),
+              tooltip: _sortByTimeDescending ? 'Newest First' : 'Oldest First',
+              onPressed: _toggleSortOrder,
+            ),
+          ),
+        ],
       ),
     );
   }

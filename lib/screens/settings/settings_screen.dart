@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:photo_lib_app/core/services/environment_service.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/providers/theme_provider.dart';
@@ -108,15 +109,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
 
                 SizedBox(height: 12.h),
-
-                // Custom Theme Option
-                _buildThemeOption(
-                  title: 'Custom',
-                  description: 'Blue and green accent colors',
-                  icon: Icons.palette,
-                  isSelected: themeProvider.appThemeMode == AppThemeMode.custom,
-                  onTap: () => themeProvider.setThemeMode(AppThemeMode.custom),
-                ),
               ],
             ),
           ),
@@ -140,15 +132,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: EdgeInsets.all(12.w),
         decoration: BoxDecoration(
           border: Border.all(
-            color: isSelected
-                ? Theme.of(context).primaryColor
-                : Colors.grey.withOpacity(0.3),
+            color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
-          color: isSelected
-              ? Theme.of(context).primaryColor.withOpacity(0.1)
-              : Colors.transparent,
+          color:
+              isSelected ? Theme.of(context).primaryColor : Colors.transparent,
         ),
         child: Row(
           children: [
@@ -156,9 +145,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Container(
               padding: EdgeInsets.all(8.w),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? Theme.of(context).primaryColor
-                    : Colors.grey.withOpacity(0.2),
+                color:
+                    isSelected ? Theme.of(context).primaryColor : Colors.grey,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -250,13 +238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             SizedBox(height: 12.h),
-            _buildInfoRow('Version', '1.0.0'),
-            SizedBox(height: 8.h),
-            _buildInfoRow('Flutter SDK', '3.x'),
-            SizedBox(height: 8.h),
-            _buildInfoRow('Dart SDK', '3.x'),
-            SizedBox(height: 8.h),
-            _buildInfoRow('API', 'JSONPlaceholder'),
+            _buildInfoRow('Version', EnvironmentService.appVersion),
           ],
         ),
       ),

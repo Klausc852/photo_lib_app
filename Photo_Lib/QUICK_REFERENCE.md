@@ -3,10 +3,7 @@
 ## 🚀 Quick Start Commands
 
 ```bash
-# First time setup
-./setup.sh
-
-# Or manually:
+# First time setup (manual - no setup.sh script)
 flutter pub get
 flutter pub run build_runner build --delete-conflicting-outputs
 flutter run
@@ -25,6 +22,10 @@ flutter run
 | API Service | `lib/core/services/api_service.dart` |
 | Cache Service | `lib/core/services/cache_service.dart` |
 | Custom Widgets | `lib/widgets/` |
+| Photo Grid Widget | `lib/widgets/photo_grid_widget.dart` |
+| Photo Card Widget | `lib/widgets/photo_card_widget.dart` |
+| Empty State Widget | `lib/widgets/empty_state_widget.dart` |
+| Photo Detail Dialog | `lib/widgets/photo_detail_dialog.dart` |
 | Assets | `assets/images/`, `assets/logo/`, `assets/animations/` |
 
 ## 🎨 Customizing Themes
@@ -94,11 +95,41 @@ CustomImageWidget(
 )
 ```
 
-### Circular Image (Avatar)
+## 📸 Using Photo Widgets
+
+### Photo Grid
 ```dart
-CircularImageWidget(
-  imageUrl: 'https://example.com/avatar.jpg',
-  radius: 50,
+PhotoGridWidget(
+  photos: photoList,
+  scrollController: scrollController,
+  hasMorePhotos: hasMore,
+  isLoadingMore: isLoading,
+  onLoadMore: () => loadMorePhotos(),
+  onPhotoTap: (photo) => showPhotoDetail(photo),
+)
+```
+
+### Photo Card
+```dart
+PhotoCardWidget(
+  photo: photoModel,
+  onTap: () => handlePhotoTap(),
+)
+```
+
+### Photo Detail Dialog
+```dart
+PhotoDetailDialog.show(context, photoModel);
+```
+
+### Empty State Widget
+```dart
+EmptyStateWidget(
+  title: 'No photos found',
+  subtitle: 'Try searching for something else',
+  icon: Icons.photo_library_outlined,
+  onRetry: () => retry(),
+  retryButtonText: 'Retry',
 )
 ```
 
@@ -125,12 +156,13 @@ CustomButton(
 )
 ```
 
-### Icon Button
+### Button with Icon
 ```dart
-CustomIconButton(
-  icon: Icons.settings,
+CustomButton(
+  text: 'Save',
   onPressed: () {},
-  tooltip: 'Settings',
+  icon: Icons.save,
+  isLoading: false,
 )
 ```
 
@@ -150,11 +182,6 @@ OverlayLoadingIndicator(
   message: 'Please wait...',
   child: YourContentWidget(),
 )
-```
-
-### Small Inline Loading
-```dart
-SmallLoadingIndicator()
 ```
 
 ## 💾 Cache Management
@@ -196,6 +223,24 @@ await CacheService.saveInt('key', 123);
 final value = await CacheService.getString('key');
 ```
 
+## 📱 Device Orientation
+
+The app automatically handles orientation based on device type:
+
+### Mobile Devices (Phones)
+- **Locked to portrait orientation** - prevents rotation to landscape
+- Provides consistent UI experience on smaller screens
+- Grid always shows 2 columns
+
+### Tablet Devices  
+- **Supports all orientations** - can rotate freely
+- Portrait: 2 columns in photo grid
+- Landscape: 4 columns in photo grid
+- Takes advantage of larger screen real estate
+
+### Implementation
+Orientation is controlled in `lib/main.dart` using `SystemChrome.setPreferredOrientations()` based on device detection.
+
 ## 📱 Responsive Sizing
 
 Using flutter_screenutil for responsive design:
@@ -217,6 +262,87 @@ borderRadius: BorderRadius.circular(12.r)
 padding: EdgeInsets.all(16.w)
 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h)
 ```
+
+## 🔍 Search and Filtering
+
+The app includes smart search functionality:
+
+### Search Features
+- **Real-time filtering** as you type
+- **Multi-field search** - searches description, location, and creator
+- **No results state** - shows helpful message when search returns no matches
+- **Clear search** - easy button to clear and return to all photos
+
+### Search States
+```dart
+// When search returns no results
+EmptyStateWidget(
+  title: 'No photos found',
+  subtitle: 'No photos match your search for "sunset"',
+  icon: Icons.search_off,
+  onRetry: () => clearSearch(),
+  retryButtonText: 'Clear Search',
+)
+```
+
+### Implementation
+- Search controller: `TextEditingController _searchController`
+- Filter method: `_filterPhotos(String query)`
+- State management tracks: `_searchQuery`, `_filteredPhotos`, `_allPhotos`
+
+## 🧩 Widget Architecture
+
+The app follows a modular widget architecture for better maintainability:
+
+### Extracted Widgets
+- **PhotoGridWidget**: Handles photo grid display with pagination
+- **PhotoCardWidget**: Individual photo card with tap handling  
+- **EmptyStateWidget**: Flexible empty state with customizable content
+- **PhotoDetailDialog**: Modal dialog for photo details
+- **LoadingIndicator**: Consistent loading states throughout app
+
+### Benefits
+- **Reusability**: Widgets can be used in multiple screens
+- **Testability**: Each widget can be tested independently  
+- **Maintainability**: Changes to specific widgets are isolated
+- **Cleaner Code**: Main screen focuses on business logic
+
+### Usage Pattern
+```dart
+// In main screen, complex UI is simplified to:
+PhotoGridWidget(
+  photos: _displayedPhotos,
+  scrollController: _scrollController,
+  hasMorePhotos: _hasMorePhotos,
+  isLoadingMore: _isLoadingMore,
+  onLoadMore: _loadMorePhotos,
+  onPhotoTap: _showPhotoDetail,
+)
+```
+
+## ♿ Accessibility & Text Scaling
+
+The app includes modern accessibility features:
+
+### Text Scaling Support
+- **Modern API**: Uses `textScaler` instead of deprecated `textScaleFactor`
+- **Clamped Scaling**: Text scaling limited between 0.8x and 1.5x for optimal readability
+- **Linear Scaling**: Maintains consistent scaling behavior
+
+### Implementation
+```dart
+// In main.dart MaterialApp builder:
+data: MediaQuery.of(context).copyWith(
+  textScaler: TextScaler.linear(
+    MediaQuery.of(context)
+        .textScaler
+        .scale(1.0)
+        .clamp(0.8, 1.5),
+  ),
+),
+```
+
+This ensures the app remains usable for users with different accessibility needs while preventing UI breaking at extreme scale factors.
 
 ## 🎯 Navigation
 
@@ -461,7 +587,16 @@ flutter pub get
 ```
 
 ### Issue: Gradle build failed (Android)
-**Fix**: Check `android/app/build.gradle` for correct SDK versions
+**Fix**: Check `android/app/build.gradle.kts` for correct SDK versions, ensure MainActivity.kt is properly configured
+
+### Issue: MainActivity unresolved references
+**Fix**: 
+```bash
+flutter clean
+flutter pub get
+cd android && ./gradlew clean && cd ..
+flutter run
+```
 
 ### Issue: Pods install failed (iOS)
 **Fix**:
@@ -473,6 +608,31 @@ cd ..
 
 ### Issue: Image not showing
 **Fix**: Make sure path in `pubspec.yaml` matches actual file location
+
+### Issue: Network images not loading on Android
+**Fix**: Ensure internet permissions are added to `android/app/src/main/AndroidManifest.xml`:
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+```
+
+## 📱 Android Configuration
+
+### Required Permissions
+The app includes essential Android permissions:
+- **INTERNET**: For fetching photos from API
+- **ACCESS_NETWORK_STATE**: For checking connectivity
+
+### MainActivity Setup
+- Uses Flutter embedding v2
+- Kotlin-based implementation
+- Located at: `android/app/src/main/kotlin/app/example/photo_lib_app/MainActivity.kt`
+
+### Build Configuration  
+- **Gradle**: Uses Kotlin DSL (`build.gradle.kts`)
+- **Minimum SDK**: Defined by Flutter
+- **Target SDK**: Latest supported by Flutter
+- **Namespace**: `app.example.photo_lib_app`
 
 ## 📚 Learn More
 
